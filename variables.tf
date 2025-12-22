@@ -1,5 +1,5 @@
 variable "env" {}
-variable "token" {}
+# variable "token" {}
 #variable "components" {}
 variable "databases" {}
 variable "subscription_id" {
@@ -7,5 +7,5 @@ variable "subscription_id" {
 }
 variable "resource_groups" {}
 variable "vnets" {}
-variable "aks" {}
-variable "bastion_node" {}
+# variable "aks" {}
+# variable "bastion_node" {}
