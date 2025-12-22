@@ -1,4 +1,4 @@
-resource_group_name  = "project-setup-1"
-storage_account_name = "d82tfstatesnew"
-container_name       = "roboshop-tf-states"
+resource_group_name  = "RG"
+storage_account_name = "ttfstatestorage"
+container_name       = "rttfstatestorage"
 key                  = "dev.tfstate"
