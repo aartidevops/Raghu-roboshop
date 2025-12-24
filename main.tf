@@ -23,11 +23,8 @@ module "databases" {
   port            = each.value["port"]
   env             = var.env
   container       = each.value["container"]
-  rg_name         = module.resource-group["main"].name
-  rg_location     = module.resource-group["main"].location
   subnet_ids      = module.vnet["main"].subnet_ids
   subscription_id = var.subscription_id
-  subnets_cidr    = var.vnets["main"].subnets
 }
 
 # module "aks" {
