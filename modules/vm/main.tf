@@ -95,8 +95,15 @@ resource "azurerm_virtual_machine" "main" {
   delete_os_disk_on_termination = true
 
 
+  # storage_image_reference {
+  #   id = "/subscriptions/${var.subscription_id}/resourceGroups/compute-gallery/providers/Microsoft.Compute/galleries/LDORHEL9/images/la-rhel9-devops-practice/versions/1.0.0"
+  # }
+
   storage_image_reference {
-    id = "/subscriptions/${var.subscription_id}/resourceGroups/compute-gallery/providers/Microsoft.Compute/galleries/LDORHEL9/images/la-rhel9-devops-practice/versions/1.0.0"
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
   }
 
   storage_os_disk {
