@@ -66,28 +66,28 @@ databases = {
 
   mongodb = {
     name      = "mongodb"
-    vm_size   = "Standard_DS1_v2"
+    vm_size   = "Standard_B4ms"
     container = false
     port      = 27017
   }
 
   mysql = {
     name      = "mysql"
-    vm_size   = "Standard_DS1_v2"
+    vm_size   = "Standard_B4ms"
     container = false
     port      = 3306
   }
 
   rabbitmq = {
     name      = "rabbitmq"
-    vm_size   = "Standard_DS1_v2"
+    vm_size   = "Standard_B4ms"
     container = false
     port      = 5672
   }
 
   redis = {
     name      = "redis"
-    vm_size   = "Standard_DS1_v2"
+    vm_size   = "Standard_D2as_v4"
     container = false
     port      = 6379
   }
