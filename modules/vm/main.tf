@@ -99,12 +99,6 @@ resource "azurerm_virtual_machine" "main" {
     id = "/subscriptions/0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4/resourceGroups/RG/providers/Microsoft.Compute/galleries/Aarti_image/images/customImage/versions/1.0.0"
   }
 
-  storage_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
-    version   = "latest"
-  }
 
   storage_os_disk {
     name              = "${var.component}-${var.env}"
