@@ -14,7 +14,6 @@ provider "azurerm" {
   subscription_id = var.subscription_id
 }
 
-
 # provider "vault" {
 #   address = "http://vault-internal.azdevopsb82.online:8200"
 #   token   = var.token
