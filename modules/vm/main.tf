@@ -95,9 +95,9 @@ resource "azurerm_virtual_machine" "main" {
   delete_os_disk_on_termination = true
 
 
-  # storage_image_reference {
-  #   id = "/subscriptions/${var.subscription_id}/resourceGroups/compute-gallery/providers/Microsoft.Compute/galleries/LDORHEL9/images/la-rhel9-devops-practice/versions/1.0.0"
-  # }
+  storage_image_reference {
+    id = "/subscriptions/0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4/resourceGroups/RG/providers/Microsoft.Compute/galleries/Aarti_image/images/customImage/versions/1.0.0"
+  }
 
   storage_image_reference {
     publisher = "Canonical"
