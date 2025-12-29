@@ -24,7 +24,7 @@ module "databases" {
   env             = var.env
   container       = each.value["container"]
   subnet_ids      = module.vnet["main"].subnet_ids
-  subscription_id = var.subscription_id
+  # subscription_id = var.subscription_id
 }
 
 module "aks" {
@@ -33,11 +33,11 @@ module "aks" {
   # vault_token          = var.token
   subscription_id      = var.subscription_id
   virtual_network_name = "main"
-  env                  = var.env
+  # env                  = var.env
   name                 = each.key
-  subnet_ids           = module.vnet["main"].subnet_ids
+  # subnet_ids           = module.vnet["main"].subnet_ids
 }
 
-output "x" {
-  value = module.vnet["main"].subnet_ids
-}
+# output "x" {
+#   value = module.vnet["main"].subnet_ids
+# }
