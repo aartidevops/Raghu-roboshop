@@ -1,5 +1,4 @@
 variable "env" {}
-variable "token" {}
 #variable "components" {}
 variable "databases" {}
 variable "subscription_id" {
