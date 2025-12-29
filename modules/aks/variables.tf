@@ -1,6 +1,6 @@
+# variable "vault_token" {}
 variable "subscription_id" {}
-variable "client_id" {}
-variable "client_secret" {
-  sensitive = true
-}
-variable "tenant_id" {}
+variable "virtual_network_name" {}
+# variable "env" {}
+variable "name" {}
+# variable "subnet_ids" {}

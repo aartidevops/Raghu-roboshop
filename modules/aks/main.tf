@@ -10,11 +10,11 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   name                = "aks-cluster"
   location            = data.azurerm_resource_group.example.location
   resource_group_name = data.azurerm_resource_group.example.name
-  dns_prefix          = "akscluster"
+  dns_prefix          = "dev"
 
   default_node_pool {
     name       = "default"
-    node_count = 2
+    node_count = 1
     vm_size    = "Standard_B4ms"
   }
 
