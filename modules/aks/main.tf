@@ -5,8 +5,6 @@
 #   client_secret   = var.client_secret
 #   tenant_id       = var.tenant_id
 # }
-#
-
 
 resource "azurerm_kubernetes_cluster" "aks_cluster" {
   name                = "aks-cluster"
