@@ -7,7 +7,7 @@
 # }
 
 resource "azurerm_kubernetes_cluster" "aks_cluster" {
-  name                = "aks-cluster"
+  name                = var.aks
   location            = data.azurerm_resource_group.example.location
   resource_group_name = data.azurerm_resource_group.example.name
   dns_prefix          = "dev"
