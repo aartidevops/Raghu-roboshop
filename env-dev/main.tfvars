@@ -92,6 +92,12 @@ databases = {
     port      = 6379
   }
 
+  # vault = {
+  #   name      = "vault"
+  #   vm_size   = "Standard_D2as_v4"
+  #   container = false
+  #   port      = 8200
+  # }
 }
 
 resource_groups = {
@@ -108,11 +114,11 @@ vnets = {
   }
 }
 
-aks = {
-  main = {
-
-  }
-}
+# aks = {
+#   main = {
+#
+#   }
+# }
 #
 #
 # bastion_node = ["10.1.0.4/32", "10.1.0.7/32"]

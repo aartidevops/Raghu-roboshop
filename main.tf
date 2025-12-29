@@ -27,17 +27,17 @@ module "databases" {
   # subscription_id = var.subscription_id
 }
 
-module "aks" {
-  for_each             = var.aks
-  source               = "./modules/aks"
-  # vault_token          = var.token
-  subscription_id      = var.subscription_id
-  virtual_network_name = "main"
-  # env                  = var.env
-  name                 = each.key
-  # subnet_ids           = module.vnet["main"].subnet_ids
-}
-
-# output "x" {
-#   value = module.vnet["main"].subnet_ids
+# module "aks" {
+#   for_each             = var.aks
+#   source               = "./modules/aks"
+#   vault_token          = var.token
+#   subscription_id      = var.subscription_id
+#   virtual_network_name = "main"
+#   env                  = var.env
+#   name                 = each.key
+#   subnet_ids           = module.vnet["main"].subnet_ids
 # }
+
+output "x" {
+  value = module.vnet["main"].subnet_ids
+}
