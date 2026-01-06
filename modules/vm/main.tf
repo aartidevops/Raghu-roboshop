@@ -97,7 +97,7 @@ resource "azurerm_virtual_machine" "main" {
 
 
   storage_image_reference {
-    id = "/subscriptions/0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4/resourceGroups/RG/providers/Microsoft.Compute/galleries/customeImage/images/customeImage/versions/1.0.0"
+    id = "/subscriptions/0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4/resourcegroups/RG/providers/Microsoft.Compute/galleries/customimage/images/customimage/versions/1.0.0"
   }
 
 
