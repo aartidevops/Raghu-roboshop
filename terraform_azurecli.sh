@@ -2,7 +2,7 @@
 set -e
 
 echo "🔍 Detecting RHEL version..."
-RHEL_VERSION=$(rpm -E %{rhel})
+RHEL_VERSION=$(rpm -E '%{rhel}')
 echo "➡️  RHEL version detected: $RHEL_VERSION"
 
 # ---------------------------
@@ -35,5 +35,22 @@ else
 fi
 
 ansible --version
+
+
+# ---------------------------
+# Install kubectl (latest stable)
+# ---------------------------
+KUBE_VERSION=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+curl -LO "https://storage.googleapis.com/kubernetes-release/release/${KUBE_VERSION}/bin/linux/amd64/kubectl"
+
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/kubectl
+
+# Fix PATH issue by symlinking into /usr/bin (which is already in PATH)
+if [ ! -f /usr/bin/kubectl ]; then
+  sudo ln -s /usr/local/bin/kubectl /usr/bin/kubectl
+fi
+
+kubectl version --client
 
 echo "✅ All tools installed successfully"
