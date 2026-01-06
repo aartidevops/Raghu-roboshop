@@ -1,4 +1,3 @@
-# data "azurerm_resource_group" "example" {
-#   name = "RG"
-# }
-#
+data "azurerm_resource_group" "default" {
+  name = "RG"
+}
