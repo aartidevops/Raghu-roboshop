@@ -68,4 +68,29 @@ az aks get-credentials --resource-group RG --name aks
 kubectl get nodes
 kubectl get pods -A
 
+# ---------------------------
+# Install helm
+# ---------------------------
+
+#!/bin/bash
+set -e
+
+echo "🔍 Checking OS..."
+if ! grep -qi "rhel" /etc/os-release; then
+  echo "❌ This script is intended for RHEL systems only"
+  exit 1
+fi
+
+echo "📦 Installing prerequisites..."
+dnf install -y curl tar
+
+echo "📦 Installing Helm (official method)..."
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+echo "🔎 Verifying Helm installation..."
+helm version --short
+
+echo "✅ Helm installed successfully"
+
+
 echo "✅ All tools installed successfully"
