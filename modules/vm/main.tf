@@ -97,7 +97,7 @@ resource "azurerm_virtual_machine" "main" {
 
 
   storage_image_reference {
-    id = "/subscriptions/0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4/resourcegroups/RG/providers/Microsoft.Compute/galleries/customimage/images/customimage/versions/1.0.0"
+    id = "/subscriptions/0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4/resourcegroups/RG/providers/Microsoft.Compute/galleries/custmimage/images/customimage/versions/1.0.0"
   }
 
 
@@ -109,8 +109,8 @@ resource "azurerm_virtual_machine" "main" {
   }
   os_profile {
     computer_name  = var.component
-    admin_username = "Aarti"
-    admin_password = "Aarti@431721"
+    admin_username = data.vault_generic_secret.ssh.data["admin_username"]
+    admin_password = data.vault_generic_secret.ssh.data["admin_password"]
   }
   os_profile_linux_config {
     disable_password_authentication = false

@@ -25,6 +25,11 @@ module "databases" {
   container       = each.value["container"]
   subnet_ids      = module.vnet["main"].subnet_ids
   # subscription_id = var.subscription_id
+
+  #postaks##
+
+  vault_token      = var.token
+
 }
 
 module "aks" {
