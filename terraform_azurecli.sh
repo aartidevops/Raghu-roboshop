@@ -15,7 +15,7 @@ dnf install -y terraform
 terraform -version
 
 # ---------------------------
-# Install Azure CLI (RHEL 9)
+# Install Azure CLI
 # ---------------------------
 echo "📦 Installing Azure CLI..."
 rpm --import https://packages.microsoft.com/keys/microsoft.asc
@@ -33,64 +33,55 @@ if [ "$RHEL_VERSION" -eq 7 ]; then
 else
     dnf install -y ansible-core
 fi
-
 ansible --version
 
-
 # ---------------------------
-# Install kubectl (latest stable)
+# Install kubectl
 # ---------------------------
+echo "📦 Installing kubectl..."
 KUBE_VERSION=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
 curl -LO "https://storage.googleapis.com/kubernetes-release/release/${KUBE_VERSION}/bin/linux/amd64/kubectl"
-
 chmod +x kubectl
-sudo mv kubectl /usr/local/bin/kubectl
+mv kubectl /usr/local/bin/kubectl
 
-# Fix PATH issue by symlinking into /usr/bin (which is already in PATH)
-if [ ! -f /usr/bin/kubectl ]; then
-  sudo ln -s /usr/local/bin/kubectl /usr/bin/kubectl
-fi
-
+# Ensure kubectl is reachable
+ln -sf /usr/local/bin/kubectl /usr/bin/kubectl
 kubectl version --client
 
 # ---------------------------
-# Connect to AKS cluster
+# Install Helm
 # ---------------------------
-az login
-az account set --subscription "0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4"
-
-# ⚠️ Replace RG and NAME with actual values from `az aks list`
-az aks get-credentials --resource-group RG --name aks
+echo "📦 Installing Helm..."
+dnf install -y curl tar
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 # ---------------------------
-# Verify cluster connection
+# FIX PATH ISSUE (IMPORTANT)
 # ---------------------------
-kubectl get nodes
-kubectl get pods -A
+echo "🔧 Fixing PATH for /usr/local/bin..."
 
-# ---------------------------
-# Install helm
-# ---------------------------
-
-#!/bin/bash
-set -e
-
-echo "🔍 Checking OS..."
-if ! grep -qi "rhel" /etc/os-release; then
-  echo "❌ This script is intended for RHEL systems only"
-  exit 1
+if ! echo "$PATH" | grep -q "/usr/local/bin"; then
+  export PATH=$PATH:/usr/local/bin
+  echo 'export PATH=$PATH:/usr/local/bin' >> /etc/profile
 fi
 
-echo "📦 Installing prerequisites..."
-dnf install -y curl tar
-
-echo "📦 Installing Helm (official method)..."
-curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+# Optional but very safe
+ln -sf /usr/local/bin/helm /usr/bin/helm
 
 echo "🔎 Verifying Helm installation..."
 helm version --short
 
-echo "✅ Helm installed successfully"
+# ---------------------------
+# Connect to AKS
+# ---------------------------
+az login
+az account set --subscription "0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4"
+az aks get-credentials --resource-group RG --name aks
 
+# ---------------------------
+# Verify cluster
+# ---------------------------
+kubectl get nodes
+kubectl get pods -A
 
 echo "✅ All tools installed successfully"
