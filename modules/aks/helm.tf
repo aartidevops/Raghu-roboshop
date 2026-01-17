@@ -19,7 +19,7 @@ resource "null_resource" "external-secrets" {
   depends_on = [helm_release.external-secrets]
   provisioner "local-exec" {
     command = <<EOF
-kubectl apply -f /opt/vault-token.yaml
+kubectl apply -f ${path.module}/files/secretStore.yaml
 EOF
   }
 }
