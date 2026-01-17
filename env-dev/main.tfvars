@@ -92,13 +92,13 @@ databases = {
     port      = 6379
   }
 
-  vault = {
-    name      = "vault"
-    vm_size   = "Standard_D2as_v4"
-    container = false
-    port      = 8200
+#   vault = {
+#     name      = "vault"
+#     vm_size   = "Standard_D2as_v4"
+#     container = false
+#     port      = 8200
+#   }
   }
-}
 
 resource_groups = {
   main = {
