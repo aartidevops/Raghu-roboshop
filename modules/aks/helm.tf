@@ -22,28 +22,14 @@ resource "helm_release" "external-secrets" {
   ]
 }
 
-# resource "null_resource" "external-secrets" {
-#   depends_on = [helm_release.external-secrets]
-#   provisioner "local-exec" {
-#     command = <<EOF
-# kubectl apply -f /opt/vault-token.yml
-# kubectl apply -f ${path.module}/files/secretStore.yaml
-# EOF
-#   }
-# }
-
 resource "null_resource" "external-secrets" {
   depends_on = [helm_release.external-secrets]
-
   provisioner "local-exec" {
     command = <<EOF
-echo "Waiting for External Secrets CRDs..."
-kubectl wait --for=condition=Established crd/secretstores.external-secrets.io --timeout=120s
-kubectl wait --for=condition=Established crd/clustersecretstores.external-secrets.io --timeout=120s
-
-echo "Applying Vault token and SecretStore"
 kubectl apply -f /opt/vault-token.yml
-kubectl apply -f modules/aks/files/secretStore.yaml
+kubectl apply -f ${path.module}/files/secretstore.yaml
 EOF
   }
 }
+
+
