@@ -26,7 +26,7 @@
 #   depends_on = [helm_release.external-secrets]
 #   provisioner "local-exec" {
 #     command = <<EOF
-# kubectl apply -f ${path.module}/files/secretStore.yaml
+# kubectl apply -f /opt/vault-token.yml
 # EOF
 #   }
 # }
