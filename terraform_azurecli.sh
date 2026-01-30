@@ -60,6 +60,11 @@ curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 |
 # ---------------------------
 echo "🔧 Fixing PATH for /usr/local/bin..."
 
+echo 'export PATH=$PATH:/usr/local/bin' | sudo tee /etc/profile.d/helm.sh
+source /etc/profile
+helm version
+
+
 if ! echo "$PATH" | grep -q "/usr/local/bin"; then
   export PATH=$PATH:/usr/local/bin
   echo 'export PATH=$PATH:/usr/local/bin' >> /etc/profile
