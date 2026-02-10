@@ -2,7 +2,7 @@ name: terraform apply
 on: workflow_dispatch
 jobs:
     apply:
-      runs-on: self-hosted
+      runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v4
         - run: ls -l
