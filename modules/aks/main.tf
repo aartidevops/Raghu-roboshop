@@ -27,9 +27,9 @@ resource "azurerm_kubernetes_cluster" "this" {
   oidc_issuer_enabled       = true
   workload_identity_enabled = true
 
-  lifecycle {
-    ignore_changes = [default_node_pool[0].node_count]
-  }
+  # lifecycle {
+  #   ignore_changes = [default_node_pool[0].node_count]
+  # }
 
   tags = var.tags
 }
@@ -48,9 +48,9 @@ resource "azurerm_kubernetes_cluster_node_pool" "workload" {
   tags = var.tags
 }
 
-# AKS pulls images from ACR without stored credentials
-resource "azurerm_role_assignment" "acr_pull" {
-  scope                = var.acr_id
-  role_definition_name = "AcrPull"
-  principal_id         = azurerm_kubernetes_cluster.this.kubelet_identity[0].principal_id
-}
+## AKS pulls images from ACR without stored credentials
+# resource "azurerm_role_assignment" "acr_pull" {
+#   scope                = var.acr_id
+#   role_definition_name = "AcrPull"
+#   principal_id = azurerm_kubernetes_cluster.this.kubelet_identity[0].object_id
+# }
