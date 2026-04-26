@@ -12,10 +12,16 @@ resource "azurerm_application_gateway" "this" {
   resource_group_name = var.resource_group_name
   location            = var.location
 
+  # sku {
+  #   name     = "WAF_v2"
+  #   tier     = "WAF_v2"
+  #   capacity = 1   # fixed capacity for dev (cheaper than autoscale min)
+  # }
+
   sku {
-    name     = "WAF_v2"
-    tier     = "WAF_v2"
-    capacity = 1   # fixed capacity for dev (cheaper than autoscale min)
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 1
   }
 
   gateway_ip_configuration {
@@ -68,12 +74,12 @@ resource "azurerm_application_gateway" "this" {
     priority                   = 1000
   }
 
-  waf_configuration {
-    enabled          = true
-    firewall_mode    = "Detection"  # use Prevention in prod
-    rule_set_type    = "OWASP"
-    rule_set_version = "3.2"
-  }
+  # waf_configuration {
+  #   enabled          = true
+  #   firewall_mode    = "Detection"  # use Prevention in prod
+  #   rule_set_type    = "OWASP"
+  #   rule_set_version = "3.2"
+  # }
 
   # CRITICAL: AGIC manages all routing config after initial creation
   # Without ignore_changes, Terraform fights AGIC on every plan
