@@ -8,4 +8,7 @@ variable "workload_node_size"  { type = string }
 variable "workload_min_count"  { type = number }
 variable "workload_max_count"  { type = number }
 variable "acr_id"              { type = string }
-variable "tags"                { type = map(string); default = {} }
+variable "tags" {
+  type    = map(string)
+  default = {}
+}
