@@ -1,54 +1,83 @@
-# resource "azurerm_virtual_network" "main" {
-#   name                = "${var.rg_name}-vnet"
-#   location            = var.rg_location
-#   resource_group_name = var.rg_name
-#   address_space       = var.address_space
-#
-#   tags = {
-#     environment = var.env
-#   }
-# }
-#
-# resource "azurerm_subnet" "main" {
-#   count                = length(var.subnets)
-#   name                 = "${var.rg_name}-vnet-subnet-${count.index + 1}"
-#   virtual_network_name = azurerm_virtual_network.main.name
-#   resource_group_name  = var.rg_name
-#   address_prefixes     = [var.subnets[count.index]]
-# }
+resource "azurerm_virtual_network" "this" {
+  name                = "${var.project}-${var.env}-vnet"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  address_space       = [var.vnet_cidr]
+  tags                = var.tags
+}
 
+resource "azurerm_subnet" "aks" {
+  name                 = "snet-aks"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.this.name
+  address_prefixes     = [var.aks_subnet_cidr]
+}
 
+resource "azurerm_subnet" "agw" {
+  name                 = "snet-agw"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.this.name
+  address_prefixes     = [var.agw_subnet_cidr]
+}
 
-resource "azurerm_virtual_network" "main" {
-  name                = "${var.rg_name}-vnet"
-  location            = var.rg_location
-  resource_group_name = var.rg_name
-  address_space       = var.vnet_config.address_space
+# NSG for AGW subnet — required, never skip port 65200-65535
+resource "azurerm_network_security_group" "agw" {
+  name                = "nsg-agw-${var.env}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
 
-  tags = {
-    environment = var.env
+  security_rule {
+    name                       = "allow-gateway-manager"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "65200-65535"
+    source_address_prefix      = "GatewayManager"
+    destination_address_prefix = "*"
   }
+
+  security_rule {
+    name                       = "allow-https"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-http"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-azure-lb"
+    priority                   = 130
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "AzureLoadBalancer"
+    destination_address_prefix = "*"
+  }
+
+  tags = var.tags
 }
 
-resource "azurerm_subnet" "main" {
-  for_each = var.vnet_config.subnets
-
-  name                 = each.key
-  resource_group_name  = var.rg_name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = [each.value.cidr]
+resource "azurerm_subnet_network_security_group_association" "agw" {
+  subnet_id                 = azurerm_subnet.agw.id
+  network_security_group_id = azurerm_network_security_group.agw.id
 }
-
-# resource "azurerm_virtual_network_peering" "main-to-project" {
-#   name                      = "${var.rg_name}-to-project"
-#   resource_group_name       = var.rg_name
-#   virtual_network_name      = azurerm_virtual_network.main.name
-#   remote_virtual_network_id = data.azurerm_virtual_network.project.id
-# }
-#
-# resource "azurerm_virtual_network_peering" "project-to-main" {
-#   name                      = "project-to-${var.rg_name}"
-#   resource_group_name       = data.azurerm_resource_group.default.name
-#   virtual_network_name      = data.azurerm_virtual_network.project.name
-#   remote_virtual_network_id = azurerm_virtual_network.main.id
-# }

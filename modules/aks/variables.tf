@@ -1,11 +1,11 @@
-variable "cluster_name"       { type = string }
-variable "location"           { type = string }
-variable "resource_group_name"{ type = string }
-variable "kubernetes_version" { type = string }
-variable "system_node_count"  { type = number }
-variable "system_node_size"   { type = string }
-variable "workload_node_size" { type = string }
-variable "workload_min_count" { type = number }
-variable "workload_max_count" { type = number }
-variable "acr_id"             { type = string }
-variable "env"                { type = string }
+variable "cluster_name"        { type = string }
+variable "location"            { type = string }
+variable "resource_group_name" { type = string }
+variable "kubernetes_version"  { type = string }
+variable "system_node_count"   { type = number }
+variable "system_node_size"    { type = string }
+variable "workload_node_size"  { type = string }
+variable "workload_min_count"  { type = number }
+variable "workload_max_count"  { type = number }
+variable "acr_id"              { type = string }
+variable "tags"                { type = map(string); default = {} }

@@ -1,58 +1,57 @@
-# Resource Groups
-module "resource-group" {
-  for_each = var.resource_groups
+# Resource group
+module "resource_group" {
   source   = "./modules/resource-group"
-  location = each.value["location"]
-  name     = each.value["name"]
+  name     = var.resource_group_name
+  location = var.location
+  tags     = var.tags
 }
 
-# Virtual Network
+# Networking
 module "vnet" {
-  for_each      = var.vnets
-  source        = "./modules/vnet"
-  rg_name       = module.resource-group["main"].name
-  rg_location   = module.resource-group["main"].location
-  address_space = each.value["address_space"]
-  env           = var.env
-  subnets       = each.value["subnets"]
+  source              = "./modules/vnet"
+  project             = var.project
+  env                 = var.env
+  location            = var.location
+  resource_group_name = module.resource_group.name
+  vnet_cidr           = var.vnet_cidr
+  aks_subnet_cidr     = var.aks_subnet_cidr
+  agw_subnet_cidr     = var.agw_subnet_cidr
+  tags                = var.tags
 }
 
-# Azure Container Registry — stores all RoboShop Docker images
+# Container Registry
 module "acr" {
   source              = "./modules/acr"
   acr_name            = var.acr_name
-  resource_group_name = module.resource-group["main"].name
-  location            = module.resource-group["main"].location
-  env                 = var.env
+  resource_group_name = module.resource_group.name
+  location            = var.location
+  tags                = var.tags
 }
 
-# AKS Cluster — runs all RoboShop services
+# AKS Cluster
 module "aks" {
   source              = "./modules/aks"
-  cluster_name        = var.aks.cluster_name
-  location            = module.resource-group["main"].location
-  resource_group_name = module.resource-group["main"].name
-  kubernetes_version  = var.aks.kubernetes_version
-  system_node_count   = var.aks.system_node_count
-  system_node_size    = var.aks.system_node_size
-  workload_node_size  = var.aks.workload_node_size
-  workload_min_count  = var.aks.workload_min_count
-  workload_max_count  = var.aks.workload_max_count
+  cluster_name        = var.aks_cluster_name
+  location            = var.location
+  resource_group_name = module.resource_group.name
+  kubernetes_version  = var.kubernetes_version
+  system_node_count   = var.system_node_count
+  system_node_size    = var.system_node_size
+  workload_node_size  = var.workload_node_size
+  workload_min_count  = var.workload_min_count
+  workload_max_count  = var.workload_max_count
   acr_id              = module.acr.acr_id
+  tags                = var.tags
+  depends_on          = [module.vnet]
+}
+
+# Application Gateway
+module "app_gateway" {
+  source              = "./modules/app-gateway"
+  project             = var.project
   env                 = var.env
-
-  depends_on = [module.vnet]
-}
-
-# Outputs — you'll use these in later phases
-output "aks_cluster_name" {
-  value = module.aks.cluster_name
-}
-
-output "acr_login_server" {
-  value = module.acr.acr_login_server
-}
-
-output "connect_to_aks" {
-  value = "az aks get-credentials --name ${module.aks.cluster_name} --resource-group ${module.resource-group["main"].name}"
+  location            = var.location
+  resource_group_name = module.resource_group.name
+  agw_subnet_id       = module.vnet.agw_subnet_id
+  tags                = var.tags
 }

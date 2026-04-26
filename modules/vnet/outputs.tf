@@ -1,13 +1,4 @@
-# output "subnet_ids" {
-#   value = azurerm_subnet.main.*.id
-# }
-
-output "vnet_id" {
-  value = azurerm_virtual_network.main.id
-}
-
-output "subnet_ids" {
-  value = {
-    for k, v in azurerm_subnet.main : k => v.id
-  }
-}
+output "vnet_id"         { value = azurerm_virtual_network.this.id }
+output "vnet_name"       { value = azurerm_virtual_network.this.name }
+output "aks_subnet_id"   { value = azurerm_subnet.aks.id }
+output "agw_subnet_id"   { value = azurerm_subnet.agw.id }
