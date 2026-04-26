@@ -38,7 +38,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "workload" {
   name                  = "workload"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
   vm_size               = var.workload_node_size
-  enable_auto_scaling   = true
+  auto_scaling_enabled  = true
   min_count             = var.workload_min_count
   max_count             = var.workload_max_count
   mode                  = "User"
@@ -52,5 +52,5 @@ resource "azurerm_kubernetes_cluster_node_pool" "workload" {
 resource "azurerm_role_assignment" "acr_pull" {
   scope                = var.acr_id
   role_definition_name = "AcrPull"
-  principal_id         = azurerm_kubernetes_cluster.this.kubelet_identity[0].object_id
+  principal_id         = azurerm_kubernetes_cluster.this.kubelet_identity[0].principal_id
 }
