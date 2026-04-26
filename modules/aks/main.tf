@@ -50,7 +50,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "workload" {
   name                  = "workload"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.roboshop.id
   vm_size               = var.workload_node_size
-  enable_auto_scaling   = true
+  auto_scaling_enabled  = true
   min_count             = var.workload_min_count
   max_count             = var.workload_max_count
   mode                  = "User"   # user pool = for application workloads
