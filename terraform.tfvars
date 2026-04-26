@@ -1,5 +1,5 @@
 env                = "dev"
-location           = "East US"
+location           = "UK West"
 project            = "roboshop"
 resource_group_name = "rg-roboshop-dev"
 acr_name           = "roboshopdevacr"      # must be globally unique

@@ -5,7 +5,7 @@ variable "env" {
 
 variable "location" {
   type    = string
-  default = "East US"
+  default = "UK West"
 }
 
 variable "project" {
