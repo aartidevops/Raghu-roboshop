@@ -1,3 +1,4 @@
+# Resource Groups
 module "resource-group" {
   for_each = var.resource_groups
   source   = "./modules/resource-group"
@@ -5,44 +6,53 @@ module "resource-group" {
   name     = each.value["name"]
 }
 
+# Virtual Network
 module "vnet" {
   for_each      = var.vnets
   source        = "./modules/vnet"
-  rg_name       = module.resource-group[each.key].name
-  rg_location   = module.resource-group[each.key].location
+  rg_name       = module.resource-group["main"].name
+  rg_location   = module.resource-group["main"].location
   address_space = each.value["address_space"]
   env           = var.env
   subnets       = each.value["subnets"]
 }
 
-module "databases" {
-  for_each        = var.databases
-  source          = "./modules/vm"
-  component       = each.value["name"]
-  vm_size         = each.value["vm_size"]
-  port            = each.value["port"]
-  env             = var.env
-  container       = each.value["container"]
-  subnet_ids      = module.vnet["main"].subnet_ids
-  # subscription_id = var.subscription_id
-
-  #postaks##
-
-  vault_token      = var.token
-
+# Azure Container Registry — stores all RoboShop Docker images
+module "acr" {
+  source              = "./modules/acr"
+  acr_name            = var.acr_name
+  resource_group_name = module.resource-group["main"].name
+  location            = module.resource-group["main"].location
+  env                 = var.env
 }
 
+# AKS Cluster — runs all RoboShop services
 module "aks" {
-  # for_each             = var.aks
-  source               = "./modules/aks"
-#   vault_token          = var.token
-#   subscription_id      = var.subscription_id
-#   virtual_network_name = "main"
-#   env                  = var.env
-#   name                 = each.key
-#   subnet_ids           = module.vnet["main"].subnet_ids
+  source              = "./modules/aks"
+  cluster_name        = var.aks.cluster_name
+  location            = module.resource-group["main"].location
+  resource_group_name = module.resource-group["main"].name
+  kubernetes_version  = var.aks.kubernetes_version
+  system_node_count   = var.aks.system_node_count
+  system_node_size    = var.aks.system_node_size
+  workload_node_size  = var.aks.workload_node_size
+  workload_min_count  = var.aks.workload_min_count
+  workload_max_count  = var.aks.workload_max_count
+  acr_id              = module.acr.acr_id
+  env                 = var.env
+
+  depends_on = [module.vnet]
 }
 
-output "x" {
-  value = module.vnet["main"].subnet_ids
+# Outputs — you'll use these in later phases
+output "aks_cluster_name" {
+  value = module.aks.cluster_name
+}
+
+output "acr_login_server" {
+  value = module.acr.acr_login_server
+}
+
+output "connect_to_aks" {
+  value = "az aks get-credentials --name ${module.aks.cluster_name} --resource-group ${module.resource-group["main"].name}"
 }

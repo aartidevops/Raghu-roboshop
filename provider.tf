@@ -1,35 +1,29 @@
-
 terraform {
+  required_version = ">= 1.9.0"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 2.50"
+    }
+  }
+  # Remote state — create this storage account manually first (one-time)
   backend "azurerm" {
-    resource_group_name   = "RG"
-    storage_account_name  = "rttfstatestorage"
-    container_name        = "tfstate"
-    key                   = "dev.tfstate"
+    resource_group_name  = "rg-roboshop-tfstate"
+    storage_account_name = "roboshoptfstate"   # must be globally unique — change this
+    container_name       = "tfstate"
+    key                  = "dev/terraform.tfstate"
   }
 }
-
 
 provider "azurerm" {
-  features {}
-  subscription_id = var.subscription_id
-}
-
-provider "vault" {
-  address = "http://vault-internal.learntechnology.shop:8200"
-  token   = var.token
-}
-
-provider "helm" {
-  kubernetes = {
-    config_path = "~/.kube/config"
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false  # easier for learning
+    }
   }
+  # Auth: uses az login on your laptop, OIDC in GitHub Actions
 }
-
-provider "kubernetes" {
-  config_path = "~/.kube/config"
-}
-
-# provider "grafana" {
-#   url  = "http://grafana-${var.env}.azdevopsb82.online/"
-#   auth = data.vault_generic_secret.k8s.data["grafana_auth"]
-# }

@@ -1,15 +1,41 @@
-variable "env" {}
-#variable "components" {}
-variable "databases" {}
-variable "subscription_id" {
-  default = "0aa6e6f6-6e44-47f7-b30d-2aa0dfd4e5f4"
+variable "env" {
+  description = "Environment name — dev, staging, prod"
+  type        = string
+  default     = "dev"
 }
-variable "resource_groups" {}
-variable "vnets" {}
 
+variable "resource_groups" {
+  description = "Map of resource groups to create"
+  type = map(object({
+    name     = string
+    location = string
+  }))
+}
 
+variable "vnets" {
+  description = "Map of VNets to create"
+  type = map(object({
+    address_space = list(string)
+    subnets = map(object({
+      cidr = string
+    }))
+  }))
+}
 
+variable "aks" {
+  description = "AKS cluster configuration"
+  type = object({
+    cluster_name        = string
+    kubernetes_version  = string
+    system_node_count   = number
+    system_node_size    = string
+    workload_min_count  = number
+    workload_max_count  = number
+    workload_node_size  = string
+  })
+}
 
-
-variable "token" {}
-
+variable "acr_name" {
+  description = "Azure Container Registry name — must be globally unique"
+  type        = string
+}
