@@ -5,4 +5,7 @@ variable "resource_group_name" { type = string }
 variable "vnet_cidr"           { type = string }
 variable "aks_subnet_cidr"     { type = string }
 variable "agw_subnet_cidr"     { type = string }
-variable "tags"                { type = map(string); default = {} }
+variable "tags" {
+  type    = map(string)
+  default = {}
+}
