@@ -7,15 +7,27 @@ resource_groups = {
   }
 }
 
-vnets = {
-  main = {
-    address_space = ["10.0.0.0/16"]
-    subnets = {
-      aks-system   = { cidr = "10.0.1.0/24" }
-      aks-workload = { cidr = "10.0.2.0/23" }  # /23 = 512 IPs for pods
-    }
-  }
+# vnets = {
+#   main = {
+#     address_space = ["10.0.0.0/16"]
+#     subnets = {
+#       aks-system   = { cidr = "10.0.1.0/24" }
+#       aks-workload = { cidr = "10.0.2.0/23" }  # /23 = 512 IPs for pods
+#     }
+#   }
+# }
+
+
+module "vnet" {
+  source = "./modules/vnet"
+
+  env         = var.env
+  rg_name     = var.resource_groups["main"].name
+  rg_location = var.resource_groups["main"].location
+
+  vnet_config = var.vnets["main"]
 }
+
 
 aks = {
   cluster_name       = "roboshop-dev-aks"
