@@ -6,3 +6,4 @@ terraform {
     key                  = "dev/platform.tfstate" # different key — separate state
   }
 }
+
