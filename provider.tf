@@ -27,12 +27,12 @@ terraform {
     }
   }
 
-  backend "azurerm" {
-    resource_group_name  = "rg-roboshop-tfstate"
-    storage_account_name = "roboshoptfstate"
-    container_name       = "tfstate"
-    key                  = "dev/roboshop.tfstate"
-  }
+  # backend "azurerm" {
+  #   resource_group_name  = "rg-roboshop-tfstate"
+  #   storage_account_name = "roboshoptfstate"
+  #   container_name       = "tfstate"
+  #   key                  = "dev/roboshop.tfstate"
+  # }
 }
 
 provider "azurerm" {
