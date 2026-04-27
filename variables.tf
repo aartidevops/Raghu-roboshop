@@ -46,7 +46,7 @@ variable "aks_cluster_name" {
 
 variable "kubernetes_version" {
   type    = string
-  default = "1.30.2"
+  default = "1.35.2"
 }
 
 variable "system_node_size" {
@@ -77,7 +77,7 @@ variable "workload_max_count" {
 variable "domain" {
   type        = string
   description = "Your base domain e.g. roboshop.example.com"
-  default     = "roboshop.example.com"
+  default     = "roboshop.skilltechnology.online"
 }
 
 variable "tags" {
@@ -86,4 +86,38 @@ variable "tags" {
     Project   = "roboshop"
     ManagedBy = "Terraform"
   }
+}
+
+# Add these to your existing variables.tf
+
+variable "email" {
+  type        = string
+  description = "Email for Let's Encrypt certificates"
+  default     = "aartichaple2124@gmail.com"
+}
+
+variable "mongodb_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "mysql_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "rabbitmq_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "stripe_key" {
+  type      = string
+  sensitive = true
+  default   = "sk_test_placeholder"
+}
+
+variable "grafana_password" {
+  type      = string
+  sensitive = true
 }

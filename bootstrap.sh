@@ -6,7 +6,7 @@ set -euo pipefail
 
 LOCATION="UK West"
 TF_RG="rg-roboshop-tfstate"
-TF_SA="roboshoptfstate$(openssl rand -hex 4)"  # unique name
+TF_SA="roboshoptfstate"  # unique name
 TF_CONTAINER="tfstate"
 
 echo "Creating terraform state storage..."
