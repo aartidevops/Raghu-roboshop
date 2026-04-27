@@ -69,6 +69,6 @@ provider "kubernetes" {
 # Points to Vault running inside AKS via ingress
 provider "vault" {
   address         = "http://vault.${var.domain}"
-  token           = data.azurerm_key_vault_secret.vault_root_token.value
+//  token           = data.azurerm_key_vault_secret.vault_root_token.value
   skip_tls_verify = true
 }
