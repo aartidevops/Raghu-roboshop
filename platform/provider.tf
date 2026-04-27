@@ -38,7 +38,7 @@ data "terraform_remote_state" "infra" {
   backend = "azurerm"
   config = {
     resource_group_name  = "rg-roboshop-tfstate"
-    storage_account_name = "roboshoptfstateXXXX"  # same storage account
+    storage_account_name = "roboshoptfstate"  # same storage account
     container_name       = "tfstate"
     key                  = "dev/infra.tfstate"
   }
