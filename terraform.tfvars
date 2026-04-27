@@ -14,7 +14,7 @@ domain             = "roboshop.skilltechnology.online"# change this
 
 
 # New values — add these
-domain           = "roboshop.skilltechnology.online"  # CHANGE THIS to your real domain
+# domain           = "roboshop.skilltechnology.online"  # CHANGE THIS to your real domain
 email            = "aartichaple2124@gmail.com"
 mongodb_password  = "Mongo@Roboshop123"
 mysql_password    = "MySQL@Roboshop123"
