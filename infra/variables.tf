@@ -88,36 +88,3 @@ variable "tags" {
   }
 }
 
-# Add these to your existing variables.tf
-
-variable "email" {
-  type        = string
-  description = "Email for Let's Encrypt certificates"
-  default     = "aartichaple2124@gmail.com"
-}
-
-variable "mongodb_password" {
-  type      = string
-  sensitive = true
-}
-
-variable "mysql_password" {
-  type      = string
-  sensitive = true
-}
-
-variable "rabbitmq_password" {
-  type      = string
-  sensitive = true
-}
-
-variable "stripe_key" {
-  type      = string
-  sensitive = true
-  default   = "sk_test_placeholder"
-}
-
-variable "grafana_password" {
-  type      = string
-  sensitive = true
-}

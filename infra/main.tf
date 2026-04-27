@@ -56,32 +56,3 @@ module "app_gateway" {
   tags                = var.tags
 }
 
-# Add to your existing main.tf — keep all existing modules, add these
-
-# Azure Key Vault — survives destroy, stores Vault keys
-module "azure_keyvault" {
-  source              = "./modules/azure-key-vault"
-  env                 = var.env
-  location            = var.location
-  resource_group_name = module.resource_group.name
-  tags                = var.tags
-}
-
-# Platform tools — all installed via Helm
-module "platform" {
-  source = "./modules/platform"
-
-  domain              = var.domain
-  email               = var.email
-  azure_keyvault_id   = module.azure_keyvault.key_vault_id
-  azure_keyvault_name = module.azure_keyvault.key_vault_name
-  mongodb_password    = var.mongodb_password
-  mysql_password      = var.mysql_password
-  rabbitmq_password   = var.rabbitmq_password
-  grafana_password    = var.grafana_password
-  stripe_key          = var.stripe_key
-
-  depends_on = [module.aks]
-  # CRITICAL: platform depends on AKS existing first
-  # Helm and Kubernetes providers need AKS to be Ready
-}

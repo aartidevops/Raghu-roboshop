@@ -11,3 +11,4 @@ output "connect_command" {
 output "dns_instruction" {
   value = "Create A record: *.${var.domain} → ${module.app_gateway.public_ip}"
 }
+//
