@@ -124,3 +124,66 @@ resource "kubectl_manifest" "cluster_issuer" {
                 # This is why nginx must exist before certificates can be issued
   YAML
 }
+
+
+# ═══════════════════════════════════════════════════════════════
+# TOOL 2 — nginx ingress controller
+#
+# What it does:
+#   Gets a public Azure Load Balancer IP.
+#   Routes traffic to the right pod based on hostname.
+#   Example: vault.skilltechnology.online → vault pod
+#
+# Why before Vault:
+#   Vault needs an ingress rule to be reachable by DNS.
+#   That ingress rule needs nginx to exist first.
+# ═══════════════════════════════════════════════════════════════
+
+resource "kubernetes_namespace" "ingress_nginx" {
+  metadata {
+    name = "ingress-nginx"
+  }
+}
+
+resource "helm_release" "nginx_ingress" {
+  name       = "ingress-nginx"
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  chart      = "ingress-nginx"
+  version    = "4.11.3"
+  namespace  = kubernetes_namespace.ingress_nginx.metadata[0].name
+
+  set {
+    name  = "controller.replicaCount"
+    value = "1"
+  }
+
+  set {
+    name  = "controller.nodeSelector.kubernetes\\.io/os"
+    value = "linux"
+  }
+
+  # Azure needs this annotation or LB health probe fails
+  # Without it: LB marks nginx as unhealthy → no traffic flows
+  set {
+    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/azure-load-balancer-health-probe-request-path"
+    value = "/healthz"
+  }
+
+  set {
+    name  = "controller.resources.requests.cpu"
+    value = "100m"
+  }
+
+  set {
+    name  = "controller.resources.requests.memory"
+    value = "128Mi"
+  }
+
+  wait    = true
+  timeout = 300
+
+  depends_on = [
+    kubernetes_namespace.ingress_nginx,
+    helm_release.cert_manager
+  ]
+}
