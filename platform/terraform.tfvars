@@ -1,6 +1,2 @@
-domain           = "skilltechnology.online"
-email            = "aartichaple2124@gmail.com"
-grafana_password = "Grafana@Roboshop123"
-mongodb_password  = "Mongo@Roboshop123"
-mysql_password    = "MySQL@Roboshop123"
-rabbitmq_password = "RabbitMQ@Roboshop123"
+domain = "skilltechnology.online"
+email  = "aartichaple2124@gmail.com"

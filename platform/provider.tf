@@ -14,16 +14,16 @@ terraform {
       version = "~> 2.30"
     }
     kubectl = {
+      # gavinbunney/kubectl handles raw YAML manifests without schema validation
+      # This is what fixes the "cannot create REST client" error
+      # kubernetes_manifest validates CRDs at plan time — fails when cluster is new
+      # kubectl provider applies YAML without that validation — always works
       source  = "gavinbunney/kubectl"
       version = "~> 1.14"
     }
     time = {
       source  = "hashicorp/time"
       version = "~> 0.11"
-    }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.2"
     }
   }
 }
@@ -32,19 +32,21 @@ provider "azurerm" {
   features {}
 }
 
-# Read infra state to get AKS connection details
-# This is how platform/ knows the AKS cluster details without hardcoding
+# This reads the outputs from your infra/ terraform state
+# So platform knows the AKS cluster credentials
+# You never hardcode any connection details
 data "terraform_remote_state" "infra" {
   backend = "azurerm"
   config = {
     resource_group_name  = "rg-roboshop-tfstate"
-    storage_account_name = "roboshoptfstate"  # same storage account
+    storage_account_name = "roboshoptfstate"
     container_name       = "tfstate"
     key                  = "dev/infra.tfstate"
+    # This reads infra state — NOT platform state
   }
 }
 
-# Helm provider — connects to AKS using outputs from infra state
+# Helm provider uses AKS creds from infra state
 provider "helm" {
   kubernetes {
     host = data.terraform_remote_state.infra.outputs.kube_config_host
@@ -60,7 +62,7 @@ provider "helm" {
   }
 }
 
-# Kubernetes provider — same connection details
+# Kubernetes provider — same creds, used for namespaces and service accounts
 provider "kubernetes" {
   host = data.terraform_remote_state.infra.outputs.kube_config_host
   client_certificate = base64decode(
@@ -74,8 +76,7 @@ provider "kubernetes" {
   )
 }
 
-# kubectl provider — better for applying raw YAML manifests
-# Used for ClusterIssuer which kubectl provider handles better than kubernetes_manifest
+# kubectl provider — same creds, used for raw YAML like ClusterIssuer
 provider "kubectl" {
   host = data.terraform_remote_state.infra.outputs.kube_config_host
   client_certificate = base64decode(
