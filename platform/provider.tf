@@ -41,7 +41,7 @@ data "terraform_remote_state" "infra" {
     resource_group_name  = "rg-roboshop-tfstate"
     storage_account_name = "roboshoptfstate"
     container_name       = "tfstate"
-    key                  = "dev/infra.tfstate"
+    key                  = "dev/roboshop.tfstate"
     # This reads infra state — NOT platform state
   }
 }
