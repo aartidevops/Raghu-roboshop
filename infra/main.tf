@@ -130,6 +130,11 @@ resource "azurerm_cosmosdb_mongo_collection" "catalogue_dev" {
   account_name        = azurerm_cosmosdb_account.roboshop.name
   database_name       = azurerm_cosmosdb_mongo_database.dev.name
   shard_key           = "_id"
+
+  index {
+    keys   = ["_id"]
+    unique = true
+  }
 }
 
 resource "azurerm_cosmosdb_mongo_collection" "catalogue_uat" {
@@ -138,6 +143,11 @@ resource "azurerm_cosmosdb_mongo_collection" "catalogue_uat" {
   account_name        = azurerm_cosmosdb_account.roboshop.name
   database_name       = azurerm_cosmosdb_mongo_database.uat.name
   shard_key           = "_id"
+
+  index {
+    keys   = ["_id"]
+    unique = true
+  }
 }
 
 resource "azurerm_cosmosdb_mongo_collection" "catalogue_prod" {
@@ -146,6 +156,11 @@ resource "azurerm_cosmosdb_mongo_collection" "catalogue_prod" {
   account_name        = azurerm_cosmosdb_account.roboshop.name
   database_name       = azurerm_cosmosdb_mongo_database.prod.name
   shard_key           = "_id"
+
+  index {
+    keys   = ["_id"]
+    unique = true
+  }
 }
 
 # ─────────────────────────────────────────────────────────────
