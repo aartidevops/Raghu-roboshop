@@ -64,3 +64,51 @@ output "connect_command" {
 output "dns_instruction" {
   value = "After platform apply: point *.${var.domain} → nginx ingress IP"
 }
+
+
+
+
+
+
+output "cosmos_account_name" {
+  value = azurerm_cosmosdb_account.roboshop.name
+}
+
+output "cosmos_primary_key" {
+  value     = azurerm_cosmosdb_account.roboshop.primary_key
+  sensitive = true
+}
+
+output "cosmos_dev_connection_string" {
+  value     = "mongodb://${azurerm_cosmosdb_account.roboshop.name}:${azurerm_cosmosdb_account.roboshop.primary_key}@${azurerm_cosmosdb_account.roboshop.name}.mongo.cosmos.azure.com:10255/roboshop-dev?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${azurerm_cosmosdb_account.roboshop.name}@"
+  sensitive = true
+}
+
+output "cosmos_uat_connection_string" {
+  value     = "mongodb://${azurerm_cosmosdb_account.roboshop.name}:${azurerm_cosmosdb_account.roboshop.primary_key}@${azurerm_cosmosdb_account.roboshop.name}.mongo.cosmos.azure.com:10255/roboshop-uat?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${azurerm_cosmosdb_account.roboshop.name}@"
+  sensitive = true
+}
+
+output "cosmos_prod_connection_string" {
+  value     = "mongodb://${azurerm_cosmosdb_account.roboshop.name}:${azurerm_cosmosdb_account.roboshop.primary_key}@${azurerm_cosmosdb_account.roboshop.name}.mongo.cosmos.azure.com:10255/roboshop-prod?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${azurerm_cosmosdb_account.roboshop.name}@"
+  sensitive = true
+}
+
+output "redis_dev_host" {
+  value = azurerm_redis_cache.dev.hostname
+}
+
+output "redis_dev_password" {
+  value     = azurerm_redis_cache.dev.primary_access_key
+  sensitive = true
+}
+
+output "redis_uat_host" {
+  value = azurerm_redis_cache.uat.hostname
+}
+
+output "redis_uat_password" {
+  value     = azurerm_redis_cache.uat.primary_access_key
+  sensitive = true
+}
+

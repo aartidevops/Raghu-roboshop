@@ -11,5 +11,6 @@ workload_node_size = "Standard_B4ms"
 workload_min_count = 2
 workload_max_count = 6
 domain             = "roboshop.skilltechnology.online"# change this
-
+allowed_ip = "122.170.196.202"
+# Replace with: curl ifconfig.me
 

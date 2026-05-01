@@ -19,3 +19,8 @@ provider "azurerm" {
   }
   # Uses az login locally, OIDC in GitHub Actions
 }
+
+random = {
+  source  = "hashicorp/random"
+  version = "~> 3.6"
+}

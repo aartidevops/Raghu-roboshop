@@ -88,3 +88,16 @@ variable "tags" {
   }
 }
 
+
+
+
+
+
+
+variable "allowed_ip" {
+  type        = string
+  description = "Your laptop public IP for Cosmos DB access during testing"
+  default     = "122.170.196.202"
+  # Find your IP: curl ifconfig.me
+  # Replace 0.0.0.0 with your real IP for security
+}
