@@ -230,9 +230,26 @@ resource "helm_release" "vault" {
     value = "64Mi"
   }
 
+
+  # Standalone vs HA — controlled by var.vault_replicas
   set {
     name  = "server.standalone.enabled"
-    value = "true"
+    value = var.vault_replicas == 1 ? "true" : "false"
+  }
+
+  set {
+    name  = "server.ha.enabled"
+    value = var.vault_replicas > 1 ? "true" : "false"
+  }
+
+  set {
+    name  = "server.ha.replicas"
+    value = tostring(var.vault_replicas)
+  }
+
+  set {
+    name  = "server.ha.raft.enabled"
+    value = var.vault_replicas > 1 ? "true" : "false"
   }
 
   set {
