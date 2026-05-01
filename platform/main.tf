@@ -314,7 +314,7 @@ resource "helm_release" "vault" {
 
   set {
     name  = "server.ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/ssl-redirect"
-    value = "true"
+    value = "\"true\""
   }
 
   set {
