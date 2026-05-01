@@ -353,3 +353,304 @@ resource "helm_release" "vault" {
     kubectl_manifest.cluster_issuer
   ]
 }
+
+
+# ═══════════════════════════════════════════════════════════════
+# TOOL 4 — ArgoCD
+#
+# GitOps engine. Watches a Git repo and auto-deploys changes.
+# One ArgoCD manages ALL environments (dev/uat/prod) using
+# separate namespaces and separate Application manifests.
+#
+# Accessible at: https://argocd.skilltechnology.online
+# ═══════════════════════════════════════════════════════════════
+
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = "argocd"
+  }
+}
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = "7.8.0"
+  namespace  = kubernetes_namespace.argocd.metadata[0].name
+
+  # ArgoCD runs in insecure mode — nginx handles TLS
+  set {
+    name  = "configs.params.server\\.insecure"
+    value = "true"
+  }
+
+  set {
+    name  = "configs.cm.admin\\.enabled"
+    value = "true"
+  }
+
+  # HA mode toggle — false=1 replica, true=3 replicas
+  # Change var.argocd_ha_enabled=true for prod HA
+  set {
+    name  = "server.replicas"
+    value = var.argocd_ha_enabled ? "3" : "1"
+  }
+
+  set {
+    name  = "repoServer.replicas"
+    value = var.argocd_ha_enabled ? "3" : "1"
+  }
+
+  set {
+    name  = "applicationSet.replicas"
+    value = var.argocd_ha_enabled ? "3" : "1"
+  }
+
+  # Ingress
+  set {
+    name  = "server.ingress.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "server.ingress.ingressClassName"
+    value = "nginx"
+  }
+
+  set {
+    name  = "server.ingress.hostname"
+    value = "argocd.${var.domain}"
+  }
+
+  set {
+    name  = "server.ingress.annotations.cert-manager\\.io/cluster-issuer"
+    value = "letsencrypt-prod"
+  }
+
+  set {
+    name  = "server.ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/ssl-redirect"
+    value = "\"true\""
+  }
+
+  set {
+    name  = "server.ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/backend-protocol"
+    value = "HTTP"
+  }
+
+  set {
+    name  = "server.ingress.tls"
+    value = "true"
+  }
+
+  # Resource limits — scale up for prod
+  set {
+    name  = "server.resources.requests.cpu"
+    value = var.environment == "prod" ? "100m" : "50m"
+  }
+
+  set {
+    name  = "server.resources.requests.memory"
+    value = var.environment == "prod" ? "256Mi" : "128Mi"
+  }
+
+  set {
+    name  = "repoServer.resources.requests.cpu"
+    value = "50m"
+  }
+
+  set {
+    name  = "repoServer.resources.requests.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "redis.resources.requests.cpu"
+    value = "50m"
+  }
+
+  set {
+    name  = "redis.resources.requests.memory"
+    value = "64Mi"
+  }
+
+  # ApplicationSet — needed for multi-env deployment patterns
+  set {
+    name  = "applicationSet.enabled"
+    value = "true"
+  }
+
+  wait    = true
+  timeout = 600
+
+  depends_on = [
+    kubernetes_namespace.argocd,
+    helm_release.nginx_ingress,
+    kubectl_manifest.cluster_issuer
+  ]
+}
+
+# ── App namespaces ──────────────────────────────────────────────
+# One namespace per environment
+# ArgoCD deploys into these namespaces
+# Vault policies are scoped to these namespaces
+# This is the environment isolation boundary
+
+resource "kubernetes_namespace" "roboshop_dev" {
+  metadata {
+    name = "roboshop-dev"
+    labels = {
+      environment = "dev"
+      app         = "roboshop"
+    }
+  }
+}
+
+resource "kubernetes_namespace" "roboshop_uat" {
+  metadata {
+    name = "roboshop-uat"
+    labels = {
+      environment = "uat"
+      app         = "roboshop"
+    }
+  }
+}
+
+resource "kubernetes_namespace" "roboshop_prod" {
+  metadata {
+    name = "roboshop-prod"
+    labels = {
+      environment = "prod"
+      app         = "roboshop"
+    }
+  }
+}
+
+# ── Service accounts per environment ───────────────────────────
+# Vault K8s auth is bound to these service accounts
+# Pod must use this SA to get secrets from Vault
+# Each env has its own SA → own policy → own secrets
+
+resource "kubernetes_service_account" "roboshop_dev" {
+  metadata {
+    name      = "roboshop-sa"
+    namespace = kubernetes_namespace.roboshop_dev.metadata[0].name
+  }
+}
+
+resource "kubernetes_service_account" "roboshop_uat" {
+  metadata {
+    name      = "roboshop-sa"
+    namespace = kubernetes_namespace.roboshop_uat.metadata[0].name
+  }
+}
+
+resource "kubernetes_service_account" "roboshop_prod" {
+  metadata {
+    name      = "roboshop-sa"
+    namespace = kubernetes_namespace.roboshop_prod.metadata[0].name
+  }
+}
+
+# ── ArgoCD RBAC ConfigMap ──────────────────────────────────────
+# Controls who can do what in ArgoCD
+# dev team: can sync dev only
+# uat team: can sync dev + uat
+# ops team: can sync everything including prod
+
+resource "kubernetes_config_map" "argocd_rbac" {
+  metadata {
+    name      = "argocd-rbac-cm"
+    namespace = kubernetes_namespace.argocd.metadata[0].name
+  }
+
+  data = {
+    "policy.csv" = <<-EOT
+      # Developers — view all, sync dev only
+      p, role:developer, applications, get,  */*, allow
+      p, role:developer, applications, sync, roboshop-dev/*, allow
+
+      # UAT team — view all, sync dev + uat
+      p, role:uat-team, applications, get,  */*, allow
+      p, role:uat-team, applications, sync, roboshop-dev/*, allow
+      p, role:uat-team, applications, sync, roboshop-uat/*, allow
+
+      # Ops — full access
+      p, role:ops, applications, *, */*, allow
+      p, role:ops, clusters,      *, */*, allow
+
+    EOT
+    "policy.default" = "role:readonly"
+  }
+
+  depends_on = [helm_release.argocd]
+}
+
+# ── ArgoCD Projects per environment ────────────────────────────
+# AppProject restricts what ArgoCD can deploy and where
+# Prevents dev project from deploying to prod namespace
+
+resource "kubectl_manifest" "argocd_project_dev" {
+  depends_on = [helm_release.argocd]
+
+  yaml_body = <<-YAML
+    apiVersion: argoproj.io/v1alpha1
+    kind: AppProject
+    metadata:
+      name: roboshop-dev
+      namespace: argocd
+    spec:
+      description: RoboShop dev environment
+      sourceRepos:
+        - '*'
+      destinations:
+        - namespace: roboshop-dev
+          server: https://kubernetes.default.svc
+      clusterResourceWhitelist:
+        - group: ''
+          kind: Namespace
+  YAML
+}
+
+resource "kubectl_manifest" "argocd_project_uat" {
+  depends_on = [helm_release.argocd]
+
+  yaml_body = <<-YAML
+    apiVersion: argoproj.io/v1alpha1
+    kind: AppProject
+    metadata:
+      name: roboshop-uat
+      namespace: argocd
+    spec:
+      description: RoboShop UAT environment
+      sourceRepos:
+        - '*'
+      destinations:
+        - namespace: roboshop-uat
+          server: https://kubernetes.default.svc
+      clusterResourceWhitelist:
+        - group: ''
+          kind: Namespace
+  YAML
+}
+
+resource "kubectl_manifest" "argocd_project_prod" {
+  depends_on = [helm_release.argocd]
+
+  yaml_body = <<-YAML
+    apiVersion: argoproj.io/v1alpha1
+    kind: AppProject
+    metadata:
+      name: roboshop-prod
+      namespace: argocd
+    spec:
+      description: RoboShop production environment
+      sourceRepos:
+        - '*'
+      destinations:
+        - namespace: roboshop-prod
+          server: https://kubernetes.default.svc
+      clusterResourceWhitelist:
+        - group: ''
+          kind: Namespace
+  YAML
+}

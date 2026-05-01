@@ -78,8 +78,8 @@ kubectl exec -n vault vault-0 -- vault write auth/kubernetes/config \
 echo ""
 echo "=== Creating policies per environment ==="
 
-# Dev policy
-kubectl exec -n vault vault-0 -- vault policy write roboshop-dev - <<'EOF'
+# Write policy files locally first
+cat > /tmp/policy-dev.hcl <<'EOF'
 path "secret/data/roboshop/dev/*" {
   capabilities = ["read"]
 }
@@ -88,8 +88,7 @@ path "auth/token/renew-self" {
 }
 EOF
 
-# UAT policy
-kubectl exec -n vault vault-0 -- vault policy write roboshop-uat - <<'EOF'
+cat > /tmp/policy-uat.hcl <<'EOF'
 path "secret/data/roboshop/uat/*" {
   capabilities = ["read"]
 }
@@ -98,8 +97,7 @@ path "auth/token/renew-self" {
 }
 EOF
 
-# Prod policy
-kubectl exec -n vault vault-0 -- vault policy write roboshop-prod - <<'EOF'
+cat > /tmp/policy-prod.hcl <<'EOF'
 path "secret/data/roboshop/prod/*" {
   capabilities = ["read"]
 }
@@ -107,6 +105,18 @@ path "auth/token/renew-self" {
   capabilities = ["update"]
 }
 EOF
+
+# Copy files into the pod and apply
+kubectl cp /tmp/policy-dev.hcl  vault/vault-0:/tmp/policy-dev.hcl
+kubectl cp /tmp/policy-uat.hcl  vault/vault-0:/tmp/policy-uat.hcl
+kubectl cp /tmp/policy-prod.hcl vault/vault-0:/tmp/policy-prod.hcl
+
+kubectl exec -n vault vault-0 -- vault policy write roboshop-dev  /tmp/policy-dev.hcl
+kubectl exec -n vault vault-0 -- vault policy write roboshop-uat  /tmp/policy-uat.hcl
+kubectl exec -n vault vault-0 -- vault policy write roboshop-prod /tmp/policy-prod.hcl
+
+echo "Policies created"
+
 
 echo ""
 echo "=== Creating K8s auth roles per environment ==="
