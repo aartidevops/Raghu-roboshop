@@ -203,3 +203,93 @@ resource "random_string" "suffix" {
   special = false
   upper   = false
 }
+
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTO-UPDATE VAULT SECRETS after database creation
+# Runs every time terraform apply completes
+# Pushes real DB connection strings into Vault automatically
+# No manual copy-paste ever needed
+# ─────────────────────────────────────────────────────────────
+
+resource "null_resource" "vault_secrets" {
+  # Re-runs whenever any database value changes
+  # So if you destroy and recreate, new values are pushed automatically
+  triggers = {
+    cosmos_key       = azurerm_cosmosdb_account.roboshop.primary_key
+    redis_dev_key    = azurerm_redis_cache.dev.primary_access_key
+    redis_uat_key    = azurerm_redis_cache.uat.primary_access_key
+    cosmos_name      = azurerm_cosmosdb_account.roboshop.name
+    redis_dev_host   = azurerm_redis_cache.dev.hostname
+    redis_uat_host   = azurerm_redis_cache.uat.hostname
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      set -e
+
+      echo "=== Waiting for Vault to be ready ==="
+      # Wait until vault-0 pod is running and unsealed
+      for i in $(seq 1 30); do
+        STATUS=$(kubectl exec -n vault vault-0 -- \
+          vault status -format=json 2>/dev/null \
+          | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['sealed'])" \
+          2>/dev/null || echo "true")
+        if [ "$STATUS" = "False" ]; then
+          echo "Vault is ready"
+          break
+        fi
+        echo "Waiting for Vault... attempt $i/30"
+        sleep 10
+      done
+
+      echo "=== Logging in to Vault ==="
+      # Read root token from file saved by vault-init.sh
+      ROOT_TOKEN=$(cat /tmp/vault-root-token.txt 2>/dev/null || echo "")
+      if [ -z "$ROOT_TOKEN" ]; then
+        echo "ERROR: Root token not found at /tmp/vault-root-token.txt"
+        echo "Run vault-init.sh first, then re-run terraform apply"
+        exit 1
+      fi
+
+      kubectl exec -n vault vault-0 -- vault login "$ROOT_TOKEN" > /dev/null
+
+      echo "=== Writing dev secrets ==="
+      kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/dev/mongodb \
+        uri="mongodb://${azurerm_cosmosdb_account.roboshop.name}:${azurerm_cosmosdb_account.roboshop.primary_key}@${azurerm_cosmosdb_account.roboshop.name}.mongo.cosmos.azure.com:10255/roboshop-dev?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${azurerm_cosmosdb_account.roboshop.name}@"
+
+      kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/dev/redis \
+        host="${azurerm_redis_cache.dev.hostname}" \
+        port="6380" \
+        password="${azurerm_redis_cache.dev.primary_access_key}"
+
+      echo "=== Writing uat secrets ==="
+      kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/uat/mongodb \
+        uri="mongodb://${azurerm_cosmosdb_account.roboshop.name}:${azurerm_cosmosdb_account.roboshop.primary_key}@${azurerm_cosmosdb_account.roboshop.name}.mongo.cosmos.azure.com:10255/roboshop-uat?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${azurerm_cosmosdb_account.roboshop.name}@"
+
+      kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/uat/redis \
+        host="${azurerm_redis_cache.uat.hostname}" \
+        port="6380" \
+        password="${azurerm_redis_cache.uat.primary_access_key}"
+
+      echo "=== Writing prod secrets ==="
+      kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/prod/mongodb \
+        uri="mongodb://${azurerm_cosmosdb_account.roboshop.name}:${azurerm_cosmosdb_account.roboshop.primary_key}@${azurerm_cosmosdb_account.roboshop.name}.mongo.cosmos.azure.com:10255/roboshop-prod?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${azurerm_cosmosdb_account.roboshop.name}@"
+
+      echo "=== Vault secrets updated successfully ==="
+      kubectl exec -n vault vault-0 -- vault kv list secret/roboshop/dev/
+    EOT
+  }
+
+  # Only run after databases AND platform (vault) are ready
+  depends_on = [
+    azurerm_cosmosdb_account.roboshop,
+    azurerm_cosmosdb_mongo_database.dev,
+    azurerm_cosmosdb_mongo_database.uat,
+    azurerm_cosmosdb_mongo_database.prod,
+    azurerm_redis_cache.dev,
+    azurerm_redis_cache.uat
+  ]
+}
