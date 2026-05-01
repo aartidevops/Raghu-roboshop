@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 
@@ -20,7 +24,3 @@ provider "azurerm" {
   # Uses az login locally, OIDC in GitHub Actions
 }
 
-random = {
-  source  = "hashicorp/random"
-  version = "~> 3.6"
-}
