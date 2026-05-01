@@ -557,33 +557,28 @@ resource "kubernetes_service_account" "roboshop_prod" {
 # uat team: can sync dev + uat
 # ops team: can sync everything including prod
 
-resource "kubernetes_config_map" "argocd_rbac" {
-  metadata {
-    name      = "argocd-rbac-cm"
-    namespace = kubernetes_namespace.argocd.metadata[0].name
-  }
-
-  data = {
-    "policy.csv" = <<-EOT
-      # Developers — view all, sync dev only
-      p, role:developer, applications, get,  */*, allow
-      p, role:developer, applications, sync, roboshop-dev/*, allow
-
-      # UAT team — view all, sync dev + uat
-      p, role:uat-team, applications, get,  */*, allow
-      p, role:uat-team, applications, sync, roboshop-dev/*, allow
-      p, role:uat-team, applications, sync, roboshop-uat/*, allow
-
-      # Ops — full access
-      p, role:ops, applications, *, */*, allow
-      p, role:ops, clusters,      *, */*, allow
-
-    EOT
-    "policy.default" = "role:readonly"
-  }
-
+resource "kubectl_manifest" "argocd_rbac" {
   depends_on = [helm_release.argocd]
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: argocd-rbac-cm
+      namespace: argocd
+    data:
+      policy.default: "role:readonly"
+      policy.csv: |
+        p, role:developer, applications, get,  */*, allow
+        p, role:developer, applications, sync, roboshop-dev/*, allow
+        p, role:uat-team, applications, get,  */*, allow
+        p, role:uat-team, applications, sync, roboshop-dev/*, allow
+        p, role:uat-team, applications, sync, roboshop-uat/*, allow
+        p, role:ops, applications, *, */*, allow
+        p, role:ops, clusters,      *, */*, allow
+  YAML
 }
+
 
 # ── ArgoCD Projects per environment ────────────────────────────
 # AppProject restricts what ArgoCD can deploy and where
