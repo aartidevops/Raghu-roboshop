@@ -187,3 +187,152 @@ resource "helm_release" "nginx_ingress" {
     helm_release.cert_manager
   ]
 }
+
+
+# ═══════════════════════════════════════════════════════════════
+# TOOL 3 — HashiCorp Vault
+# Stores all secrets. Pods get secrets via sidecar injection.
+# Accessible at: https://vault.skilltechnology.online
+# ═══════════════════════════════════════════════════════════════
+
+resource "kubernetes_namespace" "vault" {
+  metadata {
+    name = "vault"
+  }
+}
+
+resource "helm_release" "vault" {
+  name       = "vault"
+  repository = "https://helm.releases.hashicorp.com"
+  chart      = "vault"
+  version    = "0.29.0"
+  namespace  = kubernetes_namespace.vault.metadata[0].name
+
+  set {
+    name  = "global.tlsDisable"
+    value = "true"
+    # nginx handles TLS — vault doesn't need to
+  }
+
+  set {
+    name  = "injector.enabled"
+    value = "true"
+    # sidecar injector — auto-injects vault-agent into app pods
+  }
+
+  set {
+    name  = "injector.resources.requests.cpu"
+    value = "50m"
+  }
+
+  set {
+    name  = "injector.resources.requests.memory"
+    value = "64Mi"
+  }
+
+  set {
+    name  = "server.standalone.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "server.standalone.config"
+    value = <<-EOT
+      ui = true
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+      storage "raft" {
+        path = "/vault/data"
+      }
+      service_registration "kubernetes" {}
+    EOT
+  }
+
+  set {
+    name  = "server.dataStorage.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "server.dataStorage.size"
+    value = "2Gi"
+  }
+
+  set {
+    name  = "server.dataStorage.storageClass"
+    value = "managed-csi"
+  }
+
+  set {
+    name  = "server.resources.requests.cpu"
+    value = "50m"
+  }
+
+  set {
+    name  = "server.resources.requests.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "ui.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "ui.serviceType"
+    value = "ClusterIP"
+  }
+
+  # Ingress — exposes Vault UI at vault.skilltechnology.online
+  set {
+    name  = "server.ingress.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "server.ingress.ingressClassName"
+    value = "nginx"
+  }
+
+  set {
+    name  = "server.ingress.hosts[0].host"
+    value = "vault.${var.domain}"
+  }
+
+  set {
+    name  = "server.ingress.hosts[0].paths[0]"
+    value = "/"
+  }
+
+  set {
+    name  = "server.ingress.annotations.cert-manager\\.io/cluster-issuer"
+    value = "letsencrypt-prod"
+  }
+
+  set {
+    name  = "server.ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/ssl-redirect"
+    value = "true"
+  }
+
+  set {
+    name  = "server.ingress.tls[0].secretName"
+    value = "vault-tls"
+  }
+
+  set {
+    name  = "server.ingress.tls[0].hosts[0]"
+    value = "vault.${var.domain}"
+  }
+
+  wait    = true
+  timeout = 600
+
+  depends_on = [
+    kubernetes_namespace.vault,
+    helm_release.nginx_ingress,
+    kubectl_manifest.cluster_issuer
+  ]
+}
