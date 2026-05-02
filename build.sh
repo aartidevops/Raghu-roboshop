@@ -46,3 +46,10 @@ echo "  Nginx IP : $NGINX_IP"
 echo "  ArgoCD   : https://argocd.skilltechnology.online"
 echo "  Vault    : https://vault.skilltechnology.online"
 echo "╚══════════════════════════════════════════╝"
+
+# Add this to build.sh after Step 6 (push-secrets.sh)
+
+echo ""
+echo "=== Step 7: Applying ArgoCD applications ==="
+kubectl apply -f ~/Documents/Devops/roboshop-gitops/argocd-apps/
+echo "ArgoCD apps registered"
