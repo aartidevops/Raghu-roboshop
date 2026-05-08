@@ -7,7 +7,7 @@ variable "system_node_size"    { type = string }
 variable "workload_node_size"  { type = string }
 variable "workload_min_count"  { type = number }
 variable "workload_max_count"  { type = number }
-variable "acr_id"              { type = string }
+# acr_id removed — AcrPull role assignment moved to root infra/main.tf
 variable "tags" {
   type    = map(string)
   default = {}

@@ -40,7 +40,6 @@ module "aks" {
   workload_node_size  = var.workload_node_size
   workload_min_count  = var.workload_min_count
   workload_max_count  = var.workload_max_count
-  acr_id              = module.acr.acr_id
   tags                = var.tags
   depends_on          = [module.vnet]
 }
