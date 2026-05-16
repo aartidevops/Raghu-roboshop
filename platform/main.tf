@@ -417,8 +417,9 @@ resource "helm_release" "argocd" {
     value = "nginx"
   }
 
+  # Official argo-cd helm chart uses hosts[] array, NOT hostname (Bitnami convention)
   set {
-    name  = "server.ingress.hostname"
+    name  = "server.ingress.hosts[0]"
     value = "argocd.${var.domain}"
   }
 
@@ -437,9 +438,15 @@ resource "helm_release" "argocd" {
     value = "HTTP"
   }
 
+  # TLS must be an array of objects, not a boolean
   set {
-    name  = "server.ingress.tls"
-    value = "true"
+    name  = "server.ingress.tls[0].secretName"
+    value = "argocd-tls"
+  }
+
+  set {
+    name  = "server.ingress.tls[0].hosts[0]"
+    value = "argocd.${var.domain}"
   }
 
   # Resource limits — scale up for prod
@@ -647,5 +654,161 @@ resource "kubectl_manifest" "argocd_project_prod" {
       clusterResourceWhitelist:
         - group: ''
           kind: Namespace
+  YAML
+}
+
+
+# ═══════════════════════════════════════════════════════════════
+# MySQL — for the Shipping service (dev, in-cluster)
+#
+# Why in-cluster:
+#   Shipping is the only service that needs MySQL. Running it
+#   inside AKS is free and fast. For prod we'd use Azure Database
+#   for MySQL Flexible Server but that's overkill for dev/learning.
+#
+# How it works:
+#   - MySQL 8.0 Deployment in roboshop-dev namespace
+#   - Service named "mysql" — shipping's DB_HOST defaults to "mysql"
+#   - ConfigMap mounts init SQL into /docker-entrypoint-initdb.d/
+#     MySQL auto-runs these scripts on first boot (empty data dir)
+#   - PVC on managed-csi survives pod restarts
+#   - Master city data is loaded separately via load-mysql-data.sh
+#     (too large for a ConfigMap — ~512KB of INSERT statements)
+# ═══════════════════════════════════════════════════════════════
+
+resource "kubectl_manifest" "mysql_init_configmap" {
+  depends_on = [kubernetes_namespace.roboshop_dev]
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: mysql-init-scripts
+      namespace: roboshop-dev
+    data:
+      01-schema.sql: |
+        CREATE DATABASE IF NOT EXISTS cities;
+        USE cities;
+        CREATE TABLE IF NOT EXISTS cities (
+          uuid int(11) NOT NULL AUTO_INCREMENT,
+          country_code varchar(2) DEFAULT NULL,
+          city varchar(100) DEFAULT NULL,
+          name varchar(100) DEFAULT NULL,
+          region varchar(100) DEFAULT NULL,
+          latitude decimal(10,7) DEFAULT NULL,
+          longitude decimal(10,7) DEFAULT NULL,
+          PRIMARY KEY (uuid),
+          KEY region_idx (region),
+          KEY c_code_idx (country_code),
+          FULLTEXT KEY city_idx (city)
+        ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+      02-app-user.sql: |
+        CREATE USER IF NOT EXISTS 'shipping'@'%' IDENTIFIED WITH mysql_native_password BY 'RoboShop@1';
+        GRANT ALL ON cities.* TO 'shipping'@'%';
+        FLUSH PRIVILEGES;
+  YAML
+}
+
+resource "kubectl_manifest" "mysql_pvc" {
+  depends_on = [kubernetes_namespace.roboshop_dev]
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: mysql-data
+      namespace: roboshop-dev
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: managed-csi
+      resources:
+        requests:
+          storage: 5Gi
+  YAML
+}
+
+resource "kubectl_manifest" "mysql_deployment" {
+  depends_on = [
+    kubectl_manifest.mysql_init_configmap,
+    kubectl_manifest.mysql_pvc
+  ]
+
+  yaml_body = <<-YAML
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: mysql
+      namespace: roboshop-dev
+      labels:
+        app: mysql
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: mysql
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            app: mysql
+        spec:
+          containers:
+            - name: mysql
+              image: mysql:8.0
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  value: "RoboShop@1"
+              ports:
+                - containerPort: 3306
+              volumeMounts:
+                - name: mysql-data
+                  mountPath: /var/lib/mysql
+                - name: init-scripts
+                  mountPath: /docker-entrypoint-initdb.d
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              readinessProbe:
+                exec:
+                  command:
+                    - mysqladmin
+                    - ping
+                    - -uroot
+                    - -pRoboShop@1
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                failureThreshold: 6
+          volumes:
+            - name: mysql-data
+              persistentVolumeClaim:
+                claimName: mysql-data
+            - name: init-scripts
+              configMap:
+                name: mysql-init-scripts
+  YAML
+}
+
+resource "kubectl_manifest" "mysql_service" {
+  depends_on = [kubectl_manifest.mysql_deployment]
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: mysql
+      namespace: roboshop-dev
+    spec:
+      selector:
+        app: mysql
+      ports:
+        - port: 3306
+          targetPort: 3306
+      type: ClusterIP
   YAML
 }

@@ -13,13 +13,22 @@ echo ""
 echo "=== Vault Status ==="
 kubectl exec -n vault vault-0 -- vault status 2>/dev/null || true
 
+# ─────────────────────────────────────────────────────────────
 # Check if already initialised
-INITIALIZED=$(kubectl exec -n vault vault-0 -- \
-  vault status -format=json 2>/dev/null \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['initialized'])" \
-  2>/dev/null || echo "false")
+# vault status exits 0 (unsealed), 1 (error), or 2 (sealed)
+# Even when sealed, -format=json outputs valid JSON with initialized=true
+# We suppress the exit code with ||true and parse stdout separately
+# ─────────────────────────────────────────────────────────────
+VAULT_STATUS_JSON=$(kubectl exec -n vault vault-0 -- vault status -format=json 2>/dev/null || true)
 
-if [ "$INITIALIZED" = "True" ]; then
+INITIALIZED="false"
+if [ -n "$VAULT_STATUS_JSON" ]; then
+  INITIALIZED=$(echo "$VAULT_STATUS_JSON" | python3 -c \
+    "import sys,json; d=json.load(sys.stdin); print('true' if d.get('initialized') else 'false')" \
+    2>/dev/null || echo "false")
+fi
+
+if [ "$INITIALIZED" = "true" ]; then
   echo ""
   echo "Vault already initialised."
   echo "Enter your unseal key to unseal:"
@@ -27,6 +36,31 @@ if [ "$INITIALIZED" = "True" ]; then
   echo ""
   kubectl exec -n vault vault-0 -- vault operator unseal "$KEY"
   echo "Vault unsealed."
+
+  # Log in for the rest of the script
+  if [ -f /tmp/vault-root-token.txt ]; then
+    ROOT_TOKEN=$(cat /tmp/vault-root-token.txt)
+    kubectl exec -n vault vault-0 -- vault login "$ROOT_TOKEN" > /dev/null
+    echo "Logged in with saved root token."
+  else
+    echo "No saved root token found at /tmp/vault-root-token.txt"
+    echo "Enter root token to configure Vault:"
+    read -s -p "Root token: " ROOT_TOKEN
+    echo ""
+    kubectl exec -n vault vault-0 -- vault login "$ROOT_TOKEN" > /dev/null
+    echo "$ROOT_TOKEN" > /tmp/vault-root-token.txt
+  fi
+
+  # Idempotent: enable secrets/auth only if not already enabled
+  echo ""
+  echo "=== Ensuring Vault engines enabled (idempotent) ==="
+  kubectl exec -n vault vault-0 -- vault secrets enable -path=secret kv-v2 2>/dev/null || echo "  kv-v2 already enabled"
+  kubectl exec -n vault vault-0 -- vault auth enable kubernetes 2>/dev/null || echo "  kubernetes auth already enabled"
+
+  kubectl exec -n vault vault-0 -- vault write auth/kubernetes/config \
+    kubernetes_host="https://kubernetes.default.svc.cluster.local:443" 2>/dev/null || true
+
+  echo "Vault ready — run push-secrets.sh to populate secrets."
   exit 0
 fi
 
@@ -65,12 +99,12 @@ echo "=== Logging in ==="
 kubectl exec -n vault vault-0 -- vault login "$ROOT_TOKEN"
 
 echo ""
-echo "=== Enabling KV v2 secrets engine ==="
-kubectl exec -n vault vault-0 -- vault secrets enable -path=secret kv-v2
+echo "=== Enabling KV v2 secrets engine (idempotent) ==="
+kubectl exec -n vault vault-0 -- vault secrets enable -path=secret kv-v2 2>/dev/null || echo "  kv-v2 already enabled"
 
 echo ""
-echo "=== Enabling Kubernetes auth ==="
-kubectl exec -n vault vault-0 -- vault auth enable kubernetes
+echo "=== Enabling Kubernetes auth (idempotent) ==="
+kubectl exec -n vault vault-0 -- vault auth enable kubernetes 2>/dev/null || echo "  kubernetes auth already enabled"
 
 kubectl exec -n vault vault-0 -- vault write auth/kubernetes/config \
   kubernetes_host="https://kubernetes.default.svc.cluster.local:443"
@@ -78,7 +112,6 @@ kubectl exec -n vault vault-0 -- vault write auth/kubernetes/config \
 echo ""
 echo "=== Creating policies per environment ==="
 
-# Write policy files locally first
 cat > /tmp/policy-dev.hcl <<'EOF'
 path "secret/data/roboshop/dev/*" {
   capabilities = ["read"]
@@ -106,7 +139,6 @@ path "auth/token/renew-self" {
 }
 EOF
 
-# Copy files into the pod and apply
 kubectl cp /tmp/policy-dev.hcl  vault/vault-0:/tmp/policy-dev.hcl
 kubectl cp /tmp/policy-uat.hcl  vault/vault-0:/tmp/policy-uat.hcl
 kubectl cp /tmp/policy-prod.hcl vault/vault-0:/tmp/policy-prod.hcl
@@ -117,13 +149,8 @@ kubectl exec -n vault vault-0 -- vault policy write roboshop-prod /tmp/policy-pr
 
 echo "Policies created"
 
-
 echo ""
 echo "=== Creating K8s auth roles per environment ==="
-
-# Each environment namespace gets its own role
-# bound to its own service account and its own policy
-# This means dev pods CANNOT read prod secrets — isolation by design
 
 kubectl exec -n vault vault-0 -- vault write auth/kubernetes/role/roboshop-dev \
   bound_service_account_names="roboshop-sa" \
@@ -144,39 +171,6 @@ kubectl exec -n vault vault-0 -- vault write auth/kubernetes/role/roboshop-prod 
   ttl="24h"
 
 echo ""
-echo "=== Storing secrets per environment ==="
-# Separate secrets per env — dev has dev DB, prod has prod DB
-# In real project: prod secrets are stored manually by ops team
-# never in scripts — but for lab this is fine
-
-# Dev secrets
-kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/dev/mongodb \
-  uri="mongodb://mongoadmin:DevMongo@123@roboshop-dev-cosmos.mongo.cosmos.azure.com:10255/catalogue?ssl=true&replicaSet=globaldb"
-
-kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/dev/redis \
-  host="roboshop-dev-redis.redis.cache.windows.net" \
-  port="6380" \
-  password="REPLACE_WITH_DEV_REDIS_KEY"
-
-# UAT secrets
-kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/uat/mongodb \
-  uri="mongodb://mongoadmin:UatMongo@123@roboshop-uat-cosmos.mongo.cosmos.azure.com:10255/catalogue?ssl=true&replicaSet=globaldb"
-
-kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/uat/redis \
-  host="roboshop-uat-redis.redis.cache.windows.net" \
-  port="6380" \
-  password="REPLACE_WITH_UAT_REDIS_KEY"
-
-# Prod secrets
-kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/prod/mongodb \
-  uri="mongodb://mongoadmin:ProdMongo@123@roboshop-prod-cosmos.mongo.cosmos.azure.com:10255/catalogue?ssl=true&replicaSet=globaldb"
-
-kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/prod/redis \
-  host="roboshop-prod-redis.redis.cache.windows.net" \
-  port="6380" \
-  password="REPLACE_WITH_PROD_REDIS_KEY"
-
-echo ""
 echo "╔══════════════════════════════════════════════════╗"
 echo "║   VAULT SETUP COMPLETE                          ║"
 echo "╠══════════════════════════════════════════════════╣"
@@ -185,3 +179,5 @@ echo "  Login:      Token method"
 echo "  Token:      $ROOT_TOKEN"
 echo "  Unseal key: $UNSEAL_KEY"
 echo "╚══════════════════════════════════════════════════╝"
+echo ""
+echo "Next: run bash push-secrets.sh to push DB secrets from Terraform outputs"

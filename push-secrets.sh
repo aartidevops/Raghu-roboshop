@@ -37,7 +37,8 @@ echo "MongoDB dev — done"
 kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/dev/redis \
   host="${REDIS_DEV_HOST}" \
   port="6380" \
-  password="${REDIS_DEV_PASS}"
+  password="${REDIS_DEV_PASS}" \
+  url="rediss://:${REDIS_DEV_PASS}@${REDIS_DEV_HOST}:6380"
 
 echo "Redis dev — done"
 
@@ -52,7 +53,8 @@ echo "MongoDB uat — done"
 kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/uat/redis \
   host="${REDIS_UAT_HOST}" \
   port="6380" \
-  password="${REDIS_UAT_PASS}"
+  password="${REDIS_UAT_PASS}" \
+  url="rediss://:${REDIS_UAT_PASS}@${REDIS_UAT_HOST}:6380"
 
 echo "Redis uat — done"
 
@@ -63,6 +65,16 @@ kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/prod/mongodb \
   uri="mongodb://${COSMOS_NAME}:${COSMOS_KEY}@${COSMOS_NAME}.mongo.cosmos.azure.com:10255/roboshop-prod?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${COSMOS_NAME}@"
 
 echo "MongoDB prod — done"
+
+# No separate prod Redis in this setup — prod shares UAT Redis instance
+# In a real company: separate Redis per env and stored manually by ops
+kubectl exec -n vault vault-0 -- vault kv put secret/roboshop/prod/redis \
+  host="${REDIS_UAT_HOST}" \
+  port="6380" \
+  password="${REDIS_UAT_PASS}" \
+  url="rediss://:${REDIS_UAT_PASS}@${REDIS_UAT_HOST}:6380"
+
+echo "Redis prod — done (shared with UAT for learning env)"
 
 echo ""
 echo "=== Verifying secrets ==="
